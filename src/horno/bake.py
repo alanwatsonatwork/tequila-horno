@@ -12,12 +12,24 @@ import horno.log
 
 ################################################################################
 
-_darkdata = {}
-_flatdata = None
+_detectortemperaturestep = 10
+
+
+def setdetectortemperaturestep(detectortemperaturestep):
+    global _detectortemperaturestep
+    _detectortemperaturestep = detectortemperaturestep
 
 
 def _mapdetectortemperature(detectortemperature):
-    return 10 * round(detectortemperature / 10)
+    return _detectortemperaturestep * round(
+        detectortemperature / _detectortemperaturestep
+    )
+
+
+################################################################################
+
+_darkdata = {}
+_flatdata = None
 
 
 def _darkpath(exposuretime, detectortemperature, tag):
