@@ -20,7 +20,13 @@ def _ihdu(fitspath):
         return 0
 
 
-def readraw(fitspath, name=None, logger=None, verbose=True):
+def readraw(
+    fitspath,
+    name=None,
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     if verbose:
         logger(
@@ -35,10 +41,18 @@ def readraw(fitspath, name=None, logger=None, verbose=True):
     return header, data
 
 
-def readrawheader(fitspath, name=None, logger=None, verbose=True):
+def readrawheader(
+    fitspath,
+    name=None,
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     if verbose:
-        logger(name, "reading header from raw FITS file %s." % (os.path.basename(fitspath)))
+        logger(
+            name, "reading header from raw FITS file %s." % (os.path.basename(fitspath))
+        )
     hdu = astropy.io.fits.open(fitspath)
     ihdu = _ihdu(fitspath)
     header = hdu[ihdu].header
@@ -46,7 +60,13 @@ def readrawheader(fitspath, name=None, logger=None, verbose=True):
     return header
 
 
-def readrawdata(fitspath, name=None, logger=None, verbose=True):
+def readrawdata(
+    fitspath,
+    name=None,
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     if verbose:
         logger(name, "reading data from raw file %s." % (os.path.basename(fitspath)))
@@ -57,10 +77,18 @@ def readrawdata(fitspath, name=None, logger=None, verbose=True):
     return data
 
 
-def readproduct(fitspath, name=None, logger=None, verbose=True):
+def readproduct(
+    fitspath,
+    name=None,
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     if verbose:
-        logger(name, "reading header from product file %s." % (os.path.basename(fitspath)))
+        logger(
+            name, "reading header from product file %s." % (os.path.basename(fitspath))
+        )
     hdu = astropy.io.fits.open(fitspath)
     ihdu = _ihdu(fitspath)
     header = hdu[ihdu].header
@@ -69,10 +97,18 @@ def readproduct(fitspath, name=None, logger=None, verbose=True):
     return header, data
 
 
-def readproductheader(fitspath, name=None, logger=None, verbose=True):
+def readproductheader(
+    fitspath,
+    name=None,
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     if verbose:
-        logger(name, "reading header from product file %s." % (os.path.basename(fitspath)))
+        logger(
+            name, "reading header from product file %s." % (os.path.basename(fitspath))
+        )
     hdu = astropy.io.fits.open(fitspath)
     ihdu = _ihdu(fitspath)
     header = hdu[ihdu].header
@@ -80,10 +116,18 @@ def readproductheader(fitspath, name=None, logger=None, verbose=True):
     return header
 
 
-def readproductdata(fitspath, name=None, logger=None, verbose=True):
+def readproductdata(
+    fitspath,
+    name=None,
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     if verbose:
-        logger(name, "reading data from product file %s." % (os.path.basename(fitspath)))
+        logger(
+            name, "reading data from product file %s." % (os.path.basename(fitspath))
+        )
     hdu = astropy.io.fits.open(fitspath)
     ihdu = _ihdu(fitspath)
     data = np.array(hdu[ihdu].data, dtype=np.float32)
@@ -101,7 +145,8 @@ def writeproduct(
     gain=None,
     name=None,
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
     logger = horno.log.getlogger(logger)
     if verbose:

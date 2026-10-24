@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 import photutils.aperture
 
+
 def sigmaclippedstats(data, sigma=3.0, axis=None):
     """
     Return sigma-clipped statistics of the given data.
@@ -155,7 +156,6 @@ def show(
             1 + 2 * (nmax // 2 // tickinterval),
         )
     )
-
     if small:
         plt.figure(figsize=(5, 5 * ny / nx))
     else:
@@ -163,10 +163,15 @@ def show(
     plt.imshow(data, origin="lower", norm=norm, cmap=cmap)
     # plt.xticks(ticks, rotation=90)
     # plt.yticks(ticks)
-    fraction=0.03
-    pad=0.02
+    fraction = 0.03
+    pad = 0.02
     if colorbar:
-        plt.colorbar(fraction=fraction, aspect=1/fraction, pad=pad, shrink=1/(1+fraction+pad))
+        plt.colorbar(
+            fraction=fraction,
+            aspect=1 / fraction,
+            pad=pad,
+            shrink=1 / (1 + fraction + pad),
+        )
 
     if aperturexy is not None:
         aperturexy = np.array(aperturexy)

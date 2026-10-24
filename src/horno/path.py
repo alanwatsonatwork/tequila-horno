@@ -10,7 +10,8 @@ def getrawfitspaths(
     fitspathsslice=None,
     name=None,
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
     """
     Return an expanded and filtered list of FITS paths.
@@ -52,18 +53,26 @@ def getrawfitspaths(
         fitspaths = list(
             fitspath
             for fitspath in fitspaths
-            if round(horno.instrument.exposuretime(
-                horno.fits.readrawheader(fitspath, name=name, logger=logger, verbose=verbose)
-            ))
+            if round(
+                horno.instrument.exposuretime(
+                    horno.fits.readrawheader(
+                        fitspath, name=name, logger=logger, verbose=verbose
+                    )
+                )
+            )
             == round(exposuretime)
         )
     if detectortemperature is not None:
         fitspaths = list(
             fitspath
             for fitspath in fitspaths
-            if round(horno.instrument.detectortemperature(
-                horno.fits.readrawheader(fitspath, name=name, logger=logger, verbose=verbose)
-            ))
+            if round(
+                horno.instrument.detectortemperature(
+                    horno.fits.readrawheader(
+                        fitspath, name=name, logger=logger, verbose=verbose
+                    )
+                )
+            )
             == round(detectortemperature)
         )
     if fitspathsslice == "firsthalf":

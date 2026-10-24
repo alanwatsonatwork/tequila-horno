@@ -88,15 +88,18 @@ def readdark(
     tag=None,
     name="readdark",
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
     logger = horno.log.getlogger(logger)
     path = _darkpath(exposuretime, detectortemperature, tag)
     if not os.path.exists(path):
         raise RuntimeError("%s not found." % path)
-    if verbose:
+    if verbose or not silent:
         logger(name, "reading %s." % (path))
-    data = horno.fits.readproductdata(path, name=name, logger=logger, verbose=verbose)
+    data = horno.fits.readproductdata(
+        path, name=name, logger=logger, silent=silent, verbose=verbose
+    )
     _setdarkdata(exposuretime, detectortemperature, data)
     return data
 
@@ -106,9 +109,11 @@ def readflat(tag=None, name="readflat", logger=None, verbose=True):
     path = _flatpath(tag)
     if not os.path.exists(path):
         raise RuntimeError("%s not found." % path)
-    if verbose:
+    if verbose or not silent:
         logger(name, "reading %s." % (path))
-    data = horno.fits.readproductdata(path, name=name, logger=logger, verbose=verbose)
+    data = horno.fits.readproductdata(
+        path, name=name, logger=logger, silent=silent, verbose=verbose
+    )
     _setflatdata(data)
     return data
 
@@ -119,14 +124,17 @@ def writedark(
     tag=None,
     name="writedark",
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
     logger = horno.log.getlogger(logger)
     path = _darkpath(exposuretime, detectortemperature, tag)
     data = _getdarkdata(exposuretime, detectortemperature)
-    if verbose:
+    if verbose or not silent:
         logger(name, "writing %s." % (path))
-    horno.fits.writeproduct(path, data, name=name, logger=logger, verbose=verbose)
+    horno.fits.writeproduct(
+        path, data, name=name, logger=logger, silent=silent, verbose=verbose
+    )
     return
 
 
@@ -134,14 +142,17 @@ def writeflat(
     tag=None,
     name="writeflat",
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
     logger = horno.log.getlogger(logger)
     path = _flatpath(tag)
     data = _getflatdata()
-    if verbose:
+    if verbose or not silent:
         logger(name, "writing %s." % (path))
-    horno.fits.writeproduct(path, data, name=name, logger=logger, verbose=verbose)
+    horno.fits.writeproduct(
+        path, data, name=name, logger=logger, silent=silent, verbose=verbose
+    )
     return
 
 
@@ -149,19 +160,29 @@ def writeflat(
 
 
 def usefakedark(
-    exposuretime, detectortemperature, name="usefakedark", logger=None, verbose=True
+    exposuretime,
+    detectortemperature,
+    name="usefakedark",
+    logger=None,
+    silent=False,
+    verbose=False,
 ):
     logger = horno.log.getlogger(logger)
-    if verbose:
+    if verbose or not silent:
         logger(name, "using fake dark.")
     data = 0
     _setdarkdata(exposuretime, detectortemperature, data)
     return data
 
 
-def usefakeflat(name="usefakeflat", logger=None, verbose=True):
+def usefakeflat(
+    name="usefakeflat",
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
-    if verbose:
+    if verbose or not silent:
         logger(name, "using fake flat.")
     data = 1
     _setflatdata(data)
@@ -184,7 +205,8 @@ def bake(
     nwindow=None,
     nmargin=0,
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
 
     logger = horno.log.getlogger(logger)
@@ -192,7 +214,7 @@ def bake(
     if verbose:
         logger(name, "reading %s." % (os.path.basename(fitspath)))
     header, data = horno.fits.readraw(
-        fitspath, name=name, logger=logger, verbose=verbose
+        fitspath, name=name, logger=logger, silent=silent, verbose=verbose
     )
 
     # Set invalid pixels to nan.
@@ -288,7 +310,8 @@ def makedark(
     tag=None,
     name="makedark",
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
     show=True,
 ):
 
@@ -297,7 +320,7 @@ def makedark(
 
     logger = horno.log.getlogger(logger)
 
-    if verbose:
+    if verbose or not silent:
         logger(
             name,
             "making %.0f second dark at %+.0f C from %s."
@@ -311,14 +334,15 @@ def makedark(
         fitspathsslice=fitspathsslice,
         name=name,
         logger=logger,
-        verbose=False,
+        silent=silent,
+        verbose=verbose,
     )
 
     if len(fitspathlist) == 0:
         raise RuntimeError("no dark files found.")
         return
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "%d dark files found." % len(fitspathlist))
 
     headerlist = []
@@ -326,7 +350,7 @@ def makedark(
     for fitspath in fitspathlist:
         fitsbasename = os.path.basename(fitspath)
         header = horno.fits.readrawheader(
-            fitspath, name="makedark", logger=logger, verbose=verbose
+            fitspath, name="makedark", logger=logger, silent=silent, verbose=verbose
         )
         # Reject darks taken in daylight, civil twilight, or evening nautical
         # twilight, as these have noticeable light leaks.
@@ -360,6 +384,7 @@ def makedark(
                 dotrim=True,
                 name="makedark",
                 logger=logger,
+                silent=silent,
                 verbose=verbose,
             )
         except RuntimeError as e:
@@ -377,16 +402,16 @@ def makedark(
     if len(datalist) == 0:
         raise RuntimeError("no files accepted.")
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "averaging %d darks with rejection." % len(datalist))
     datamean, datasigma = horno.image.clippedmeanandsigma(datalist, sigma=3, axis=0)
 
     mean, sigma = horno.image.clippedmeanandsigma(datamean, sigma=5)
-    if verbose:
+    if verbose or not silent:
         logger(name, "dark is %.2f ± %.2f DN." % (mean, sigma))
 
     sigma = horno.image.clippedmean(datasigma, sigma=5) / math.sqrt(len(datalist))
-    if verbose:
+    if verbose or not silent:
         logger(name, "estimated noise in dark is %.2f DN." % sigma)
 
     if show:
@@ -399,10 +424,11 @@ def makedark(
         tag,
         name="makedark",
         logger=logger,
+        silent=silent,
         verbose=verbose,
     )
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "finished.")
 
     return data
@@ -415,14 +441,15 @@ def makeflat(
     pmax=0.2,
     name="makeflat",
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
 
     logger = horno.log.getlogger(logger)
 
     ############################################################################
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "making flat %s." % fitspaths)
 
     ############################################################################
@@ -519,14 +546,14 @@ def makeflat(
         headerlist.append(header)
         datalist.append(data)
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "averaging %d flats with rejection." % (len(datalist)))
 
     flatdata, flatsigma = horno.image.clippedmeanandsigma(datalist, sigma=3, axis=0)
 
     ############################################################################
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "making mask.")
 
     maskdata = np.ones(flatdata.shape, dtype="float32")
@@ -555,11 +582,11 @@ def makeflat(
     grow = horno.image.uniformfilter(maskdata, size=3)
     maskdata[np.where(grow <= 7 / 9)] = 0
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "fraction of masked pixels is %.5f." % (1 - np.nanmean(maskdata)))
     centeryslice = slice(int(maskdata.shape[0] * 1 / 4), int(maskdata.shape[0] * 3 / 4))
     centerxslice = slice(int(maskdata.shape[1] * 1 / 4), int(maskdata.shape[1] * 3 / 4))
-    if verbose:
+    if verbose or not silent:
         logger(
             name,
             "fraction of masked pixels in center is %.5f."
@@ -570,7 +597,7 @@ def makeflat(
 
     ############################################################################
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "making flat with mask.")
 
     maskeddatalist = []
@@ -579,29 +606,28 @@ def makeflat(
         data /= np.nanmedian(data)
         maskeddatalist.append(data)
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "averaging %d flats with rejection." % (len(maskeddatalist)))
     flatdata, flatsigma = horno.image.clippedmeanandsigma(
         maskeddatalist, sigma=3, axis=0
     )
 
     mean, sigma = horno.image.clippedmeanandsigma(flatdata, sigma=5)
-    if verbose:
+    if verbose or not silent:
         logger(name, "flat is %.2f ± %.3f." % (mean, sigma))
 
     sigma = horno.image.clippedmean(flatsigma, sigma=5) / math.sqrt(len(maskeddatalist))
-    if verbose:
+    if verbose or not silent:
         logger(name, "estimated noise in flat is %.4f." % sigma)
 
     global _flatdata
     _flatdata = flatdata
     horno.image.show(_flatdata, zrange=True)
-    if verbose:
-        writeflat(tag=tag, name="makeflat", logger=logger, verbose=verbose)
+    writeflat(tag=tag, name="makeflat", logger=logger, silent=silent, verbose=verbose)
 
     ############################################################################
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "finished.")
 
     return
@@ -616,7 +642,8 @@ def makeobjects(
     doflat=True,
     name="makeobjects",
     logger=None,
-    verbose=True,
+    silent=False,
+    verbose=False,
 ):
 
     logger = horno.log.getlogger(logger)
@@ -639,6 +666,8 @@ def makeobjects(
     headerlist = []
     datalist = []
     for fitspath in fitspathlist:
+        if not silent:
+            logger(name, "making object %s." % fitspath)
         header, data = bake(
             fitspath,
             name="makeobjects",
@@ -646,6 +675,7 @@ def makeobjects(
             dotrim=dotrim,
             dodark=dodark,
             doflat=doflat,
+            silent=silent,
             verbose=verbose,
         )
 
@@ -654,7 +684,7 @@ def makeobjects(
 
     ############################################################################
 
-    if verbose:
+    if verbose or not silent:
         logger(name, "finished.")
 
     return headerlist, datalist

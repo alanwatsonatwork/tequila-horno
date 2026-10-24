@@ -21,6 +21,7 @@ def pointsource(
     finderthreshold=10,
     fwhm=10,
     show=False,
+    silent=False,
     verbose=False,
     name="pointsource",
     logger=None,
