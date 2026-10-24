@@ -104,7 +104,13 @@ def readdark(
     return data
 
 
-def readflat(tag=None, name="readflat", logger=None, verbose=True):
+def readflat(
+    tag=None,
+    name="readflat",
+    logger=None,
+    silent=False,
+    verbose=False,
+):
     logger = horno.log.getlogger(logger)
     path = _flatpath(tag)
     if not os.path.exists(path):
