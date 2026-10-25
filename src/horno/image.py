@@ -105,6 +105,18 @@ def clippedmeanandsigma(data, sigma=3.0, axis=None):
     return mean, sigma
 
 
+def mean(data, axis=None):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", Warning)
+        return np.nanmean(data, axis=axis)
+
+
+def median(data, axis=None):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", Warning)
+        return np.nanmean(data, axis=axis)
+
+
 def medianfilter(data, size):
     return scipy.ndimage.median_filter(data, size)
 
@@ -124,6 +136,11 @@ def show(
     aperturexy=None,
     apertureradius=[],
     aperturecolor="red",
+    aperturealpha=1.0,
+    secondaperturexy=None,
+    secondapertureradius=[],
+    secondaperturecolor="blue",
+    secondaperturealpha=1.0,
     cmap="viridis",
     invertcmap=False,
     path=None,
@@ -181,9 +198,61 @@ def show(
             apertures = photutils.aperture.CircularAperture(
                 aperturexy, r=apertureradius
             )
-            apertures.plot(color=aperturecolor, lw=1.5, alpha=0.5)
+            apertures.plot(color=aperturecolor, lw=1.5, alpha=aperturealpha)
+
+    if secondaperturexy is not None:
+        secondaperturexy = np.array(secondaperturexy)
+        if isinstance(secondapertureradius, (int, float)):
+            secondapertureradius = [secondapertureradius]
+        for secondapertureradius in secondapertureradius:
+            secondapertures = photutils.aperture.CircularAperture(
+                secondaperturexy, r=secondapertureradius
+            )
+            secondapertures.plot(
+                color=secondaperturecolor, lw=1.5, alpha=secondaperturealpha
+            )
 
     if path is not None:
         plt.savefig(path)
 
     plt.show()
+
+
+############################################################################
+
+
+def makesplit(data):
+
+    # We have the choice to use the raw planes (00, 01, 10, and 11), the (I, Q,
+    # U) planes, or the (I, q, u) planes. One advantage of (I, Q, U) and (I, q,
+    # u) over the raw planes is that stars have the same centers in both. One
+    # advantage of (I, q, u) over (I, Q, U) is that we can construct it in such
+    # a way that errors are uncorrelated between q and u.
+
+    data00 = data[0::2, 0::2]
+    data01 = data[0::2, 1::2]
+    data10 = data[1::2, 0::2]
+    data11 = data[1::2, 1::2]
+
+    # Use the nominal order 0, 45, 90, and 135 degrees.
+    I = 0.5 * (data00 + data01 + data11 + data10)
+    Q = data00 - data11
+    U = data01 - data10
+
+    return makedataIQU(I, Q, U)
+
+
+def makedataIQU(dataI, dataQ, dataU):
+    return np.array([dataI, dataQ, dataU])
+
+
+def dataI(data):
+    return data[0]
+
+
+def dataQ(data):
+    return data[1]
+
+
+def dataU(data):
+    return data[2]

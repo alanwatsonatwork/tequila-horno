@@ -207,6 +207,7 @@ def bake(
     doflat=False,
     dosky=False,
     dowindow=False,
+    dosplit=False,
     dorotate=False,
     nwindow=None,
     nmargin=0,
@@ -223,87 +224,95 @@ def bake(
         fitspath, name=name, logger=logger, silent=silent, verbose=verbose
     )
 
-    # Set invalid pixels to nan.
-    data[np.where(data == horno.instrument.datamax(header))] = np.nan
-    data[np.where(data == horno.instrument.datamin(header))] = np.nan
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", Warning)
 
-    if (
-        dooffset
-        and horno.instrument.offsetyslice(header) is not None
-        and horno.instrument.offsetxslice(header) is not None
-    ):
-        if verbose:
-            logger(name, "removing offset.")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            offset = np.nanmedian(
-                data[
-                    horno.instrument.offsetyslice(header),
-                    horno.instrument.offsetxslice(header),
-                ]
+        # Set invalid pixels to nan.
+        data[np.where(data == horno.instrument.datamax(header))] = np.nan
+        data[np.where(data == horno.instrument.datamin(header))] = np.nan
+
+        if (
+            dooffset
+            and horno.instrument.offsetyslice(header) is not None
+            and horno.instrument.offsetxslice(header) is not None
+        ):
+            if verbose:
+                logger(name, "removing offset.")
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                offset = np.nanmedian(
+                    data[
+                        horno.instrument.offsetyslice(header),
+                        horno.instrument.offsetxslice(header),
+                    ]
+                )
+            if math.isnan(offset):
+                raise RuntimeError("image offset is NaN.")
+            if verbose:
+                logger(name, "offset is %.2f." % offset)
+            data -= offset
+
+        if (
+            dotrim
+            and horno.instrument.trimyslice(header) is not None
+            and horno.instrument.trimxslice(header) is not None
+        ):
+            if verbose:
+                logger(name, "trimming.")
+            data = data[
+                horno.instrument.trimyslice(header), horno.instrument.trimxslice(header)
+            ]
+
+        if dodark:
+            if verbose:
+                logger(
+                    name,
+                    "subtracting dark for %.0f seconds at %+.0f C."
+                    % (
+                        round(horno.instrument.exposuretime(header)),
+                        round(horno.instrument.detectortemperature(header)),
+                    ),
+                )
+            data -= _getdarkdata(
+                horno.instrument.exposuretime(header),
+                horno.instrument.detectortemperature(header),
             )
-        if math.isnan(offset):
-            raise RuntimeError("image offset is NaN.")
-        if verbose:
-            logger(name, "offset is %.2f." % offset)
-        data -= offset
 
-    if (
-        dotrim
-        and horno.instrument.trimyslice(header) is not None
-        and horno.instrument.trimxslice(header) is not None
-    ):
-        if verbose:
-            logger(name, "trimming.")
-        data = data[
-            horno.instrument.trimyslice(header), horno.instrument.trimxslice(header)
-        ]
+        if doflat:
+            if verbose:
+                logger(name, "dividing by flat.")
+            data /= _flatdata
 
-    if dodark:
-        if verbose:
-            logger(
-                name,
-                "subtracting dark for %.0f seconds at %+.0f C."
-                % (
-                    round(horno.instrument.exposuretime(header)),
-                    round(horno.instrument.detectortemperature(header)),
-                ),
-            )
-        data -= _getdarkdata(
-            horno.instrument.exposuretime(header),
-            horno.instrument.detectortemperature(header),
-        )
+        if dosky:
+            median = np.nanmedian(data)
+            if verbose:
+                logger(name, "subtracting median sky of %.1f DN." % (median))
+            # data -= np.nanmedian(data, axis=0, keepdims=True)
+            # data -= np.nanmedian(data, axis=1, keepdims=True)
+            data -= np.nanmedian(data, keepdims=True)
 
-    if doflat:
-        if verbose:
-            logger(name, "dividing by flat.")
-        data /= _flatdata
+        if nwindow is not None:
 
-    if dosky:
-        median = np.nanmedian(data)
-        if verbose:
-            logger(name, "subtracting median sky of %.1f DN." % (median))
-        # data -= np.nanmedian(data, axis=0, keepdims=True)
-        # data -= np.nanmedian(data, axis=1, keepdims=True)
-        data -= np.nanmedian(data, keepdims=True)
+            if verbose:
+                logger(name, "windowing to %d by %d." % (nwindow, nwindow))
 
-    if dorotate:
-        if verbose:
-            logger(name, "rotating to standard orientation.")
-        data = horno.instrument.dorotate(header, data, name=name, logger=logger)
+            assert nwindow <= data.shape[0]
+            assert nwindow <= data.shape[1]
+            ylo = int((data.shape[0] - nwindow) / 2)
+            yhi = ylo + nwindow
+            xlo = int((data.shape[1] - nwindow) / 2)
+            xhi = xlo + nwindow
+            data = data[ylo:yhi, xlo:xhi].copy()
 
-    if nwindow is not None:
+        if dosplit:
+            if verbose:
+                logger(name, "splitting into Q, U, and I.")
+            data = horno.instrument.dosplit(header, data)
 
-        if verbose:
-            logger(name, "windowing to %d by %d." % (nwindow, nwindow))
-
-        assert nwindow <= data.shape[0]
-        assert nwindow <= data.shape[1]
-        ylo = int((data.shape[0] - nwindow) / 2)
-        yhi = ylo + nwindow
-        xlo = int((data.shape[1] - nwindow) / 2)
-        xhi = xlo + nwindow
-        data = data[ylo:yhi, xlo:xhi].copy()
+        if dorotate:
+            if verbose:
+                logger(name, "rotating to standard orientation.")
+            data = horno.instrument.dorotate(header, data)
 
     return header, data
 
@@ -646,6 +655,8 @@ def makeobjects(
     dotrim=True,
     dodark=True,
     doflat=True,
+    dosplit=True,
+    dorotate=True,
     name="makeobjects",
     logger=None,
     silent=False,
@@ -673,7 +684,7 @@ def makeobjects(
     datalist = []
     for fitspath in fitspathlist:
         if not silent:
-            logger(name, "making object %s." % fitspath)
+            logger(name, "making object %s." % os.path.basename(fitspath))
         header, data = bake(
             fitspath,
             name="makeobjects",
@@ -681,6 +692,8 @@ def makeobjects(
             dotrim=dotrim,
             dodark=dodark,
             doflat=doflat,
+            dosplit=dosplit,
+            dorotate=dorotate,
             silent=silent,
             verbose=verbose,
         )
